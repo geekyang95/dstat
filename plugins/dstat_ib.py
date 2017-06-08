@@ -3,6 +3,7 @@
 
 class dstat_plugin(dstat):
     ibdirname = '/sys/class/infiniband'
+    netdirname = '/sys/class/net'
     """
     Bytes received or sent through infiniband/RoCE interfaces
     Usage:
@@ -49,8 +50,9 @@ class dstat_plugin(dstat):
             raise Exception, "No suitable network interfaces found to monitor"
         return ret
 
+
     def name(self):
-        return ['ib/'+name for name in self.vars]
+        return ['ib/'+name for name in self.netcardFind() ]
 
     def extract(self):
         self.set2['total'] = [0, 0]
@@ -81,3 +83,54 @@ class dstat_plugin(dstat):
                 if self.val[name][1] < 0: self.val[name][1] += maxint + 1
         if step == op.delay:
             self.set1.update(self.set2)
+
+    def ibMac(self):
+        ret = []
+        for subdirname in os.listdir(self.ibdirname):
+            if not os.path.isdir(os.path.join(self.ibdirname,subdirname)) : continue
+            macAddress = open(self.ibdirname + "/" + subdirname + "/node_guid").read()
+            macAddress = macAddress.replace(":","")
+            macAddress = macAddress[0:6] + macAddress[10:16]
+            ret.append(macAddress + ":" + subdirname)
+        return ret
+
+    def netcardFind(self):
+        cardMac = []
+        nameList = []
+        ipList = []
+        ret = []
+        for subdirname in os.listdir(self.netdirname):
+            if not os.path.isdir(os.path.join(self.netdirname,subdirname)) : continue
+            macAddress = open(self.netdirname + "/" + subdirname + "/address").read()
+            macAddress = macAddress.replace(":","")
+            cardMac.append(macAddress + ":" + subdirname)
+        ibmac = self.ibMac()
+        for addressIb in ibmac:
+            addressIbSplit = addressIb.split(":")
+            ibName = addressIbSplit[1]
+            addressIb = addressIbSplit[0]
+            for addressCard in cardMac:
+                addressCardSplit = addressCard.split(":")
+                name = addressCardSplit[1]
+                addressNetcard = addressCardSplit[0][0:12]
+                if addressIb == addressNetcard:
+                    nameList.append(ibName + ":" + name)
+        if not nameList:
+            raise Exception, "No suitable network card found to match..."
+        for name in nameList:
+            ipAddress = os.popen("ifconfig " + name.split(":")[1] + " | grep 'inet addr'").readline()
+            ipAddress = ipAddress.split(":")[1].split(" ")[0]
+            ipList.append(name.split(":")[0] + ":" + ipAddress)
+        for ibport in self.vars:
+            if ibport == 'total':
+                ret.append('total')
+                continue
+            ibname = ibport.split(":")[0]
+            port = ibport.split(":")[1]
+            for ipName in ipList:
+                ipIb = ipName.split(":")[0]
+                ip = ipName.split(":")[1]
+                if ibname == ipIb:
+                    ret.append(ip[8:] + ":" + port)
+        "end ip match"
+        return ret
