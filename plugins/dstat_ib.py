@@ -132,5 +132,4 @@ class dstat_plugin(dstat):
                 ip = ipName.split(":")[1]
                 if ibname == ipIb:
                     ret.append(ip[8:] + ":" + port)
-        "end ip match"
         return ret
