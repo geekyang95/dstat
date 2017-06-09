@@ -62,8 +62,12 @@ class dstat_plugin(dstat):
             l=name.split(':');
             if len(l) < 2:
                  continue
-            rcv_counter_name=os.path.join('/sys/class/infiniband', l[0], 'ports', l[1], 'counters_ext/port_rcv_data_64')
-            xmit_counter_name=os.path.join('/sys/class/infiniband', l[0], 'ports', l[1], 'counters_ext/port_xmit_data_64')
+            if os.path.exists('/sys/class/infiniband/' + l[0] + '/ports/' + l[1] + '/counters_ext'):
+                rcv_counter_name=os.path.join('/sys/class/infiniband', l[0], 'ports', l[1], 'counters_ext/port_rcv_data_64')
+                xmit_counter_name=os.path.join('/sys/class/infiniband', l[0], 'ports', l[1], 'counters_ext/port_xmit_data_64')
+            else:
+                rcv_counter_name=os.path.join('/sys/class/infiniband', l[0], 'ports', l[1], 'counters/port_rcv_data')
+                xmit_counter_name=os.path.join('/sys/class/infiniband', l[0], 'ports', l[1], 'counters/port_xmit_data')
             rcv_lines = dopen(rcv_counter_name).readlines()
             xmit_lines = dopen(xmit_counter_name).readlines()
             if len(rcv_lines) < 1 or len(xmit_lines) < 1:
