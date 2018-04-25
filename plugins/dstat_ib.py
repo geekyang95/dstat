@@ -123,7 +123,10 @@ class dstat_plugin(dstat):
             raise Exception, "No suitable network card found to match..."
         for name in nameList:
             ipAddress = os.popen("ifconfig " + name.split(":")[1] + " | grep 'inet addr'").readline()
-            ipAddress = ipAddress.split(":")[1].split(" ")[0]
+	    if ipAddress == "":
+		ipAddress == "No ip"
+	    else:
+            	ipAddress = ipAddress.split(":")[1].split(" ")[0]
             ipList.append(name.split(":")[0] + ":" + ipAddress)
         for ibport in self.vars:
             if ibport == 'total':
